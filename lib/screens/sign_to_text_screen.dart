@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../main.dart';
 import '../styles/theme.dart';
 import '../models/models.dart';
+import '../widgets/animated_widgets.dart';
 
 class SignToTextScreen extends StatefulWidget {
   const SignToTextScreen({super.key});
@@ -271,25 +272,86 @@ class _SignToTextScreenState extends State<SignToTextScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: AppTheme.surfaceColor,
-        title: const Text(
-          'Sign → Text',
-          style: AppTheme.headingSmall,
+        backgroundColor: AppTheme.surfaceColor.withValues(alpha: 0.95),
+        elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppTheme.spacingXs),
+              decoration: BoxDecoration(
+                gradient: AppTheme.primaryGradient,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+              ),
+              child: const Icon(
+                Icons.videocam,
+                size: 16,
+                color: AppTheme.textLight,
+              ),
+            ),
+            const SizedBox(width: AppTheme.spacingSm),
+            Text(
+              'Sign → Text',
+              style: AppTheme.titleLarge.copyWith(
+                color: AppTheme.primaryColor,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: Container(
+            padding: const EdgeInsets.all(AppTheme.spacingXs),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+            ),
+            child: const Icon(
+              Icons.arrow_back,
+              color: AppTheme.primaryColor,
+            ),
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
-            icon: const Text('⚙️', style: TextStyle(fontSize: 20)),
+            icon: Container(
+              padding: const EdgeInsets.all(AppTheme.spacingXs),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+              ),
+              child: const Icon(
+                Icons.settings,
+                color: AppTheme.primaryColor,
+                size: 18,
+              ),
+            ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Camera and accessibility settings')),
+                SnackBar(
+                  content: Row(
+                    children: [
+                      Icon(
+                        Icons.camera_alt,
+                        color: AppTheme.textLight,
+                        size: 18,
+                      ),
+                      const SizedBox(width: AppTheme.spacingSm),
+                      const Text('Camera and accessibility settings'),
+                    ],
+                  ),
+                  backgroundColor: AppTheme.primaryColor,
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadiusLg),
+                  ),
+                ),
               );
             },
           ),
+          const SizedBox(width: AppTheme.spacingSm),
         ],
       ),
       body: Column(
@@ -320,7 +382,7 @@ class _SignToTextScreenState extends State<SignToTextScreen>
                       ),
                     ),
                   
-                  // AR Text Bubbles
+                  // Enhanced AR Text Bubbles with glass morphism
                   ..._arBubbles.map((bubble) => AnimatedBuilder(
                     animation: _fadeAnimation,
                     builder: (context, child) => Positioned(
@@ -330,20 +392,51 @@ class _SignToTextScreenState extends State<SignToTextScreen>
                         opacity: _fadeAnimation.value,
                         duration: Duration.zero,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppTheme.spacingBase,
-                            vertical: AppTheme.spacingSm,
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.of(context).size.width * 0.7,
                           ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(AppTheme.borderRadiusLg),
-                          ),
-                          child: Text(
-                            bubble.text,
-                            style: const TextStyle(
-                              color: AppTheme.textLight,
-                              fontSize: AppTheme.fontSizeBase,
-                              fontWeight: FontWeight.w500,
+                          child: GlassMorphismCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingLg,
+                              vertical: AppTheme.spacingBase,
+                            ),
+                            borderRadius: AppTheme.borderRadius2Xl,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.successColor,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppTheme.spacingSm),
+                                    Text(
+                                      'Live Translation',
+                                      style: AppTheme.caption.copyWith(
+                                        color: AppTheme.successColor,
+                                        fontWeight: FontWeight.w600,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: AppTheme.spacingSm),
+                                Text(
+                                  bubble.text,
+                                  style: AppTheme.bodyMedium.copyWith(
+                                    color: AppTheme.textColor,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -425,31 +518,90 @@ class _SignToTextScreenState extends State<SignToTextScreen>
             ),
           ),
           
-          // Controls
+          // Enhanced Controls with gradient background
           Container(
-            color: AppTheme.surfaceColor,
-            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingBase),
-            child: Center(
-              child: GestureDetector(
-                onTap: _toggleRecording,
-                child: Container(
-                  width: 80,
-                  height: 80,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.surfaceColor.withValues(alpha: 0.95),
+                  AppTheme.surfaceElevated.withValues(alpha: 0.95),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.overlayLight,
+                  blurRadius: AppTheme.elevationLow,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.symmetric(
+              vertical: AppTheme.spacingLg,
+              horizontal: AppTheme.spacingLg,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Secondary action button (future feature)
+                Container(
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: _isRecording ? AppTheme.errorColor : AppTheme.surfaceColor,
-                    borderRadius: BorderRadius.circular(40),
+                    color: AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: _isRecording ? AppTheme.errorColor : AppTheme.borderColor,
-                      width: 3,
+                      color: AppTheme.borderLight,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.overlayLight,
+                        blurRadius: AppTheme.elevationLow,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Icon(
-                    _isRecording ? Icons.stop : Icons.play_arrow,
-                    size: 32,
-                    color: _isRecording ? AppTheme.textLight : AppTheme.textColor,
+                    Icons.flip_camera_android,
+                    color: AppTheme.textMuted,
+                    size: 24,
                   ),
                 ),
-              ),
+                
+                // Main recording button
+                AnimatedFloatingButton(
+                  onPressed: _toggleRecording,
+                  icon: _isRecording ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                  isActive: _isRecording,
+                  size: 80,
+                ),
+                
+                // Secondary action button (future feature)
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: AppTheme.borderLight,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.overlayLight,
+                        blurRadius: AppTheme.elevationLow,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.photo_library_outlined,
+                    color: AppTheme.textMuted,
+                    size: 24,
+                  ),
+                ),
+              ],
             ),
           ),
           

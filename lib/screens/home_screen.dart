@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../styles/theme.dart';
-import '../widgets/mode_card.dart';
+import '../widgets/animated_widgets.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -16,148 +16,451 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppTheme.spacingLg,
-            vertical: AppTheme.spacingXl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Header
-              Column(
-                children: [
-                  Text(
-                    'Welcome to',
-                    style: AppTheme.bodyLarge.copyWith(
-                      color: AppTheme.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
+      body: GradientBackground(
+        colors: const [
+          AppTheme.backgroundColor,
+          AppTheme.surfaceElevated,
+          AppTheme.surfaceColor,
+        ],
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingLg,
+              vertical: AppTheme.spacing2Xl,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Enhanced Header with Hero Animation
+                Hero(
+                  tag: 'app-logo',
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadius3Xl),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                              blurRadius: AppTheme.elevationHigh,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.sign_language,
+                          size: 60,
+                          color: AppTheme.textLight,
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+                      Text(
+                        'Welcome to',
+                        style: AppTheme.bodyLarge.copyWith(
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: AppTheme.spacingSm),
+                      const Text(
+                        'SignBridge',
+                        style: AppTheme.headingLarge,
+                      ),
+                      const SizedBox(height: AppTheme.spacingBase),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppTheme.spacingLg,
+                          vertical: AppTheme.spacingSm,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadiusFull),
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.2),
+                          ),
+                        ),
+                        child: Text(
+                          'Bridging communication gaps in real time',
+                          style: AppTheme.bodyMedium.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppTheme.spacingXs),
-                  const Text(
-                    'SignBridge',
-                    style: AppTheme.headingLarge,
-                  ),
-                  const SizedBox(height: AppTheme.spacingBase),
-                  Text(
-                    'Choose your translation mode to get started',
-                    style: AppTheme.bodyMedium.copyWith(
-                      color: AppTheme.textSecondary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppTheme.spacing2Xl),
-
-              // Mode Selection Cards
-              Column(
-                children: [
-                  ModeCard(
-                    title: 'Sign → Text',
-                    subtitle: 'Sign Language to Speech',
-                    description: 'Use your camera to translate sign language into spoken words and text in real time',
-                    icon: const Text('🤟', style: TextStyle(fontSize: 32)),
-                    onPressed: () => _handleSignToText(context),
-                  ),
-
-                  const SizedBox(height: AppTheme.spacingLg),
-
-                  ModeCard(
-                    title: 'Speech → Sign',
-                    subtitle: 'Speech to Sign Language',
-                    description: 'Speak into your device and see corresponding sign language animations and guidance',
-                    icon: const Text('🗣️', style: TextStyle(fontSize: 32)),
-                    onPressed: () => _handleSpeechToSign(context),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppTheme.spacing2Xl),
-
-              // Quick Tips
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceColor,
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusXl),
-                  border: Border.all(color: AppTheme.borderColor),
                 ),
-                padding: const EdgeInsets.all(AppTheme.spacingLg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                const SizedBox(height: AppTheme.spacing3Xl),
+
+                // Mode Selection Cards with enhanced design
+                Column(
                   children: [
-                    const Text(
-                      'Quick Tips',
-                      style: AppTheme.headingSmall,
+                    GlassMorphismCard(
+                      onTap: () => _handleSignToText(context),
+                      padding: const EdgeInsets.all(AppTheme.spacing2Xl),
+                      child: Column(
+                        children: [
+                          // Icon with gradient background
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadius2Xl),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                                  blurRadius: AppTheme.elevationMedium,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.videocam,
+                              size: 40,
+                              color: AppTheme.textLight,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingLg),
+                          Text(
+                            'Sign → Text',
+                            style: AppTheme.headingSmall.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingSm),
+                          Text(
+                            'Sign Language to Speech',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: AppTheme.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingBase),
+                          Text(
+                            'Use your camera to translate sign language into spoken words and text in real time',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.textSecondary,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppTheme.spacingLg),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingLg,
+                              vertical: AppTheme.spacingSm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadiusFull),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Get Started',
+                                  style: AppTheme.labelLarge.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingSm),
+                                Icon(
+                                  Icons.arrow_forward,
+                                  size: 16,
+                                  color: AppTheme.primaryColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: AppTheme.spacingBase),
 
-                    _buildTipItem(
-                      '💡',
-                      'Ensure good lighting for better sign recognition',
-                    ),
-                    const SizedBox(height: AppTheme.spacingSm),
+                    const SizedBox(height: AppTheme.spacing2Xl),
 
-                    _buildTipItem(
-                      '🔊',
-                      'Speak clearly for accurate speech-to-sign translation',
-                    ),
-                    const SizedBox(height: AppTheme.spacingSm),
-
-                    _buildTipItem(
-                      '⚡',
-                      'Translations happen in real time for instant communication',
+                    GlassMorphismCard(
+                      onTap: () => _handleSpeechToSign(context),
+                      padding: const EdgeInsets.all(AppTheme.spacing2Xl),
+                      child: Column(
+                        children: [
+                          // Icon with gradient background
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.secondaryGradient,
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadius2Xl),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.secondaryColor.withValues(alpha: 0.3),
+                                  blurRadius: AppTheme.elevationMedium,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.mic,
+                              size: 40,
+                              color: AppTheme.textLight,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingLg),
+                          Text(
+                            'Speech → Sign',
+                            style: AppTheme.headingSmall.copyWith(
+                              color: AppTheme.secondaryColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingSm),
+                          Text(
+                            'Speech to Sign Language',
+                            style: AppTheme.bodySmall.copyWith(
+                              color: AppTheme.textMuted,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: AppTheme.spacingBase),
+                          Text(
+                            'Speak into your device and see corresponding sign language animations and guidance',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.textSecondary,
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppTheme.spacingLg),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingLg,
+                              vertical: AppTheme.spacingSm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondaryColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadiusFull),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Get Started',
+                                  style: AppTheme.labelLarge.copyWith(
+                                    color: AppTheme.secondaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(width: AppTheme.spacingSm),
+                                Icon(
+                                  Icons.arrow_forward,
+                                  size: 16,
+                                  color: AppTheme.secondaryColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
 
-              const SizedBox(height: AppTheme.spacingLg),
+                const SizedBox(height: AppTheme.spacing3Xl),
 
-              // Accessibility Notice
-              Container(
-                decoration: BoxDecoration(
-                  color: AppTheme.infoColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
-                ),
-                padding: const EdgeInsets.all(AppTheme.spacingBase),
-                child: Text(
-                  'This app is designed with accessibility in mind. Tap any element twice for additional options, and enable screen reader for full audio descriptions.',
-                  style: AppTheme.caption.copyWith(
-                    color: AppTheme.textColor,
+                // Enhanced Quick Tips Section
+                GlassMorphismCard(
+                  padding: const EdgeInsets.all(AppTheme.spacing2Xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(AppTheme.spacingSm),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppTheme.infoColor.withValues(alpha: 0.2),
+                                  AppTheme.infoColor.withValues(alpha: 0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+                            ),
+                            child: Icon(
+                              Icons.lightbulb_outline,
+                              color: AppTheme.infoColor,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: AppTheme.spacingBase),
+                          Text(
+                            'Quick Tips',
+                            style: AppTheme.headingSmall.copyWith(
+                              color: AppTheme.textColor,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppTheme.spacingLg),
+
+                      _buildEnhancedTipItem(
+                        Icons.wb_sunny_outlined,
+                        'Good Lighting',
+                        'Ensure proper lighting for better sign recognition accuracy',
+                        AppTheme.warningColor,
+                      ),
+                      const SizedBox(height: AppTheme.spacingBase),
+
+                      _buildEnhancedTipItem(
+                        Icons.record_voice_over,
+                        'Clear Speech',
+                        'Speak clearly and at a moderate pace for accurate translation',
+                        AppTheme.successColor,
+                      ),
+                      const SizedBox(height: AppTheme.spacingBase),
+
+                      _buildEnhancedTipItem(
+                        Icons.flash_on,
+                        'Real-time',
+                        'Experience instant communication with live translations',
+                        AppTheme.primaryColor,
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
                 ),
-              ),
-            ],
+
+                const SizedBox(height: AppTheme.spacing2Xl),
+
+                // Enhanced Accessibility Notice
+                Container(
+                  padding: const EdgeInsets.all(AppTheme.spacingLg),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.successColor.withValues(alpha: 0.1),
+                        AppTheme.successColor.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(AppTheme.borderRadiusXl),
+                    border: Border.all(
+                      color: AppTheme.successColor.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingSm),
+                        decoration: BoxDecoration(
+                          color: AppTheme.successColor.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+                        ),
+                        child: Icon(
+                          Icons.accessibility_new,
+                          color: AppTheme.successColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: AppTheme.spacingBase),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Accessibility First',
+                              style: AppTheme.labelLarge.copyWith(
+                                color: AppTheme.successColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: AppTheme.spacingXs),
+                            Text(
+                              'Designed with accessibility in mind. Enable screen reader for full audio descriptions and haptic feedback.',
+                              style: AppTheme.bodySmall.copyWith(
+                                color: AppTheme.textSecondary,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Bottom spacing
+                const SizedBox(height: AppTheme.spacing2Xl),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildTipItem(String icon, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          icon,
-          style: const TextStyle(fontSize: AppTheme.fontSizeLg),
+  Widget _buildEnhancedTipItem(
+    IconData icon,
+    String title,
+    String description,
+    Color color,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(AppTheme.spacingBase),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppTheme.borderRadiusLg),
+        border: Border.all(
+          color: color.withValues(alpha: 0.1),
         ),
-        const SizedBox(width: AppTheme.spacingSm),
-        Expanded(
-          child: Text(
-            text,
-            style: AppTheme.bodySmall.copyWith(
-              color: AppTheme.textSecondary,
-              height: 1.4,
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppTheme.spacingSm),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 18,
             ),
           ),
-        ),
-      ],
+          const SizedBox(width: AppTheme.spacingBase),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTheme.labelLarge.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppTheme.spacingXs),
+                Text(
+                  description,
+                  style: AppTheme.bodySmall.copyWith(
+                    color: AppTheme.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
+
 }
