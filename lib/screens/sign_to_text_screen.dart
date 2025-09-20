@@ -1,0 +1,473 @@
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math';
+import '../styles/theme.dart';
+import '../models/models.dart';
+
+class SignToTextScreen extends StatefulWidget {
+  const SignToTextScreen({super.key});
+
+  @override
+  State<SignToTextScreen> createState() => _SignToTextScreenState();
+}
+
+class _SignToTextScreenState extends State<SignToTextScreen>
+    with TickerProviderStateMixin {
+  bool _isRecording = false;
+  final List<TranscriptItem> _transcript = [];
+  final List<ARTextBubble> _arBubbles = [];
+  String _currentTranslation = '';
+  double _confidence = 0;
+  Timer? _recognitionTimer;
+  
+  late AnimationController _fadeController;
+  late AnimationController _pulseController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(_fadeController);
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _recognitionTimer?.cancel();
+    _fadeController.dispose();
+    _pulseController.dispose();
+    super.dispose();
+  }
+
+  void _simulateSignRecognition() {
+    final mockSigns = [
+      {'text': 'Hello', 'confidence': 0.95},
+      {'text': 'How are you?', 'confidence': 0.88},
+      {'text': 'Thank you', 'confidence': 0.92},
+      {'text': 'Good morning', 'confidence': 0.87},
+      {'text': 'Nice to meet you', 'confidence': 0.85},
+    ];
+    
+    final randomSign = mockSigns[Random().nextInt(mockSigns.length)];
+    
+    // Create AR bubble
+    final bubble = ARTextBubble(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      text: randomSign['text'] as String,
+      position: BubblePosition(
+        Random().nextDouble() * 200 + 50,
+        Random().nextDouble() * 200 + 100,
+      ),
+    );
+    
+    setState(() {
+      _currentTranslation = randomSign['text'] as String;
+      _confidence = randomSign['confidence'] as double;
+      
+      // Add to transcript
+      final newItem = TranscriptItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        timestamp: DateTime.now(),
+        text: randomSign['text'] as String,
+        type: TranscriptType.sign,
+        confidence: randomSign['confidence'] as double,
+      );
+      _transcript.insert(0, newItem);
+      
+      _arBubbles.add(bubble);
+    });
+    
+    // Remove bubble after 3 seconds
+    Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() {
+          _arBubbles.removeWhere((b) => b.id == bubble.id);
+        });
+      }
+    });
+  }
+
+  void _toggleRecording() {
+    if (!_isRecording) {
+      setState(() {
+        _isRecording = true;
+        _currentTranslation = 'Listening for signs...';
+      });
+      
+      _fadeController.forward();
+      _pulseController.repeat(reverse: true);
+      
+      // Simulate continuous recognition
+      _recognitionTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+        _simulateSignRecognition();
+      });
+    } else {
+      setState(() {
+        _isRecording = false;
+        _currentTranslation = '';
+      });
+      
+      _fadeController.reverse();
+      _pulseController.stop();
+      _recognitionTimer?.cancel();
+    }
+  }
+
+  void _clearHistory() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear History'),
+        content: const Text('Are you sure you want to clear all translation history?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                _transcript.clear();
+                _arBubbles.clear();
+                _currentTranslation = '';
+              });
+              Navigator.pop(context);
+            },
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundDark,
+      appBar: AppBar(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text(
+          'Sign → Text',
+          style: AppTheme.headingSmall,
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Text('⚙️', style: TextStyle(fontSize: 20)),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Camera and accessibility settings')),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          // Camera View with AR Overlays
+          Expanded(
+            flex: 3,
+            child: Container(
+              width: double.infinity,
+              color: AppTheme.backgroundDark,
+              child: Stack(
+                children: [
+                  // Mock camera feed
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          '📷 Camera Feed',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontSizeLg,
+                            color: AppTheme.textLight,
+                          ),
+                        ),
+                        const SizedBox(height: AppTheme.spacingSm),
+                        Text(
+                          'Position your hands in frame',
+                          style: TextStyle(
+                            fontSize: AppTheme.fontSizeBase,
+                            color: AppTheme.textLight.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // AR Text Bubbles
+                  ..._arBubbles.map((bubble) => AnimatedBuilder(
+                    animation: _fadeAnimation,
+                    builder: (context, child) => Positioned(
+                      left: bubble.position.x,
+                      top: bubble.position.y,
+                      child: AnimatedOpacity(
+                        opacity: _fadeAnimation.value,
+                        duration: Duration.zero,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppTheme.spacingBase,
+                            vertical: AppTheme.spacingSm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(AppTheme.borderRadiusLg),
+                          ),
+                          child: Text(
+                            bubble.text,
+                            style: const TextStyle(
+                              color: AppTheme.textLight,
+                              fontSize: AppTheme.fontSizeBase,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )),
+                  
+                  // Recording Indicator
+                  if (_isRecording)
+                    Positioned(
+                      top: AppTheme.spacingBase,
+                      right: AppTheme.spacingBase,
+                      child: AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) => Transform.scale(
+                          scale: _pulseAnimation.value,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingSm,
+                              vertical: AppTheme.spacingXs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.errorColor,
+                              borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+                            ),
+                            child: const Text(
+                              '🔴 Recording',
+                              style: TextStyle(
+                                color: AppTheme.textLight,
+                                fontSize: AppTheme.fontSizeSm,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  
+                  // Current Translation Display
+                  if (_currentTranslation.isNotEmpty)
+                    Positioned(
+                      bottom: AppTheme.spacingBase,
+                      left: AppTheme.spacingBase,
+                      right: AppTheme.spacingBase,
+                      child: Container(
+                        padding: const EdgeInsets.all(AppTheme.spacingBase),
+                        decoration: BoxDecoration(
+                          color: AppTheme.overlayColor,
+                          borderRadius: BorderRadius.circular(AppTheme.borderRadiusLg),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              _currentTranslation,
+                              style: const TextStyle(
+                                color: AppTheme.textLight,
+                                fontSize: AppTheme.fontSizeLg,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (_confidence > 0) ...[
+                              const SizedBox(height: AppTheme.spacingXs),
+                              Text(
+                                'Confidence: ${(_confidence * 100).round()}%',
+                                style: TextStyle(
+                                  color: AppTheme.textLight.withValues(alpha: 0.8),
+                                  fontSize: AppTheme.fontSizeSm,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          
+          // Controls
+          Container(
+            color: AppTheme.surfaceColor,
+            padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingBase),
+            child: Center(
+              child: GestureDetector(
+                onTap: _toggleRecording,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: _isRecording ? AppTheme.errorColor : AppTheme.surfaceColor,
+                    borderRadius: BorderRadius.circular(40),
+                    border: Border.all(
+                      color: _isRecording ? AppTheme.errorColor : AppTheme.borderColor,
+                      width: 3,
+                    ),
+                  ),
+                  child: Icon(
+                    _isRecording ? Icons.stop : Icons.play_arrow,
+                    size: 32,
+                    color: _isRecording ? AppTheme.textLight : AppTheme.textColor,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          // Transcript
+          Expanded(
+            flex: 2,
+            child: Container(
+              color: AppTheme.surfaceColor,
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppTheme.spacingBase,
+                      vertical: AppTheme.spacingSm,
+                    ),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: AppTheme.borderColor),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Transcript',
+                          style: AppTheme.headingSmall,
+                        ),
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: _transcript.isNotEmpty ? () {} : null,
+                              child: const Text('Play'),
+                            ),
+                            TextButton(
+                              onPressed: _transcript.isNotEmpty ? () {} : null,
+                              child: const Text('Copy'),
+                            ),
+                            TextButton(
+                              onPressed: _transcript.isNotEmpty ? _clearHistory : null,
+                              child: const Text('Clear'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  
+                  // Transcript items
+                  Expanded(
+                    child: _transcript.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Start signing to see translations appear here',
+                              style: TextStyle(
+                                color: AppTheme.textSecondary,
+                                fontSize: AppTheme.fontSizeBase,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppTheme.spacingBase,
+                            ),
+                            itemCount: _transcript.length,
+                            itemBuilder: (context, index) {
+                              final item = _transcript[index];
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: AppTheme.spacingSm,
+                                ),
+                                decoration: const BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(color: AppTheme.borderColor),
+                                  ),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.text,
+                                            style: AppTheme.bodyMedium.copyWith(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: AppTheme.spacingXs),
+                                          Text(
+                                            '${item.timestamp.hour.toString().padLeft(2, '0')}:${item.timestamp.minute.toString().padLeft(2, '0')}:${item.timestamp.second.toString().padLeft(2, '0')}',
+                                            style: AppTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppTheme.spacingSm,
+                                        vertical: AppTheme.spacingXs,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.successColor,
+                                        borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+                                      ),
+                                      child: Text(
+                                        '${(item.confidence * 100).round()}%',
+                                        style: const TextStyle(
+                                          color: AppTheme.textLight,
+                                          fontSize: AppTheme.fontSizeXs,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
