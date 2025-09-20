@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
+import '../main.dart';
 import '../styles/theme.dart';
 import '../models/models.dart';
 
@@ -19,6 +22,11 @@ class _SignToTextScreenState extends State<SignToTextScreen>
   String _currentTranslation = '';
   double _confidence = 0;
   Timer? _recognitionTimer;
+  
+  // Camera related
+  CameraController? _cameraController;
+  bool _isCameraInitialized = false;
+  bool _hasPermissions = false;
   
   late AnimationController _fadeController;
   late AnimationController _pulseController;
@@ -40,11 +48,48 @@ class _SignToTextScreenState extends State<SignToTextScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+    
+    _initializeCamera();
+  }
+  
+  Future<void> _initializeCamera() async {
+    // Check for camera permission
+    final cameraPermission = await Permission.camera.request();
+    
+    if (cameraPermission.isGranted) {
+      setState(() {
+        _hasPermissions = true;
+      });
+      
+      if (cameras.isNotEmpty) {
+        _cameraController = CameraController(
+          cameras.first,
+          ResolutionPreset.high,
+          enableAudio: false,
+        );
+        
+        try {
+          await _cameraController!.initialize();
+          if (mounted) {
+            setState(() {
+              _isCameraInitialized = true;
+            });
+          }
+        } catch (e) {
+          print('Error initializing camera: $e');
+        }
+      }
+    } else {
+      setState(() {
+        _hasPermissions = false;
+      });
+    }
   }
 
   @override
   void dispose() {
     _recognitionTimer?.cancel();
+    _cameraController?.dispose();
     _fadeController.dispose();
     _pulseController.dispose();
     super.dispose();
@@ -150,6 +195,77 @@ class _SignToTextScreenState extends State<SignToTextScreen>
       ),
     );
   }
+  
+  List<Widget> _buildPermissionRequest() {
+    return [
+      const Icon(
+        Icons.camera_alt,
+        size: 64,
+        color: AppTheme.textLight,
+      ),
+      const SizedBox(height: AppTheme.spacingBase),
+      const Text(
+        'Camera Permission Required',
+        style: TextStyle(
+          fontSize: AppTheme.fontSizeLg,
+          color: AppTheme.textLight,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      const SizedBox(height: AppTheme.spacingSm),
+      Text(
+        'Please grant camera access to enable sign language recognition',
+        style: TextStyle(
+          fontSize: AppTheme.fontSizeBase,
+          color: AppTheme.textLight.withValues(alpha: 0.7),
+        ),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: AppTheme.spacingLg),
+      ElevatedButton(
+        onPressed: () {
+          openAppSettings();
+        },
+        child: const Text('Open Settings'),
+      ),
+    ];
+  }
+  
+  List<Widget> _buildCameraLoading() {
+    return [
+      const CircularProgressIndicator(
+        valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryColor),
+      ),
+      const SizedBox(height: AppTheme.spacingBase),
+      const Text(
+        'Initializing Camera...',
+        style: TextStyle(
+          fontSize: AppTheme.fontSizeLg,
+          color: AppTheme.textLight,
+        ),
+      ),
+    ];
+  }
+  
+  List<Widget> _buildNoCameraMessage() {
+    return [
+      const Text(
+        '📷 Camera Feed',
+        style: TextStyle(
+          fontSize: AppTheme.fontSizeLg,
+          color: AppTheme.textLight,
+        ),
+      ),
+      const SizedBox(height: AppTheme.spacingSm),
+      Text(
+        'Position your hands in frame',
+        style: TextStyle(
+          fontSize: AppTheme.fontSizeBase,
+          color: AppTheme.textLight.withValues(alpha: 0.7),
+        ),
+      ),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -186,29 +302,23 @@ class _SignToTextScreenState extends State<SignToTextScreen>
               color: AppTheme.backgroundDark,
               child: Stack(
                 children: [
-                  // Mock camera feed
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          '📷 Camera Feed',
-                          style: TextStyle(
-                            fontSize: AppTheme.fontSizeLg,
-                            color: AppTheme.textLight,
-                          ),
-                        ),
-                        const SizedBox(height: AppTheme.spacingSm),
-                        Text(
-                          'Position your hands in frame',
-                          style: TextStyle(
-                            fontSize: AppTheme.fontSizeBase,
-                            color: AppTheme.textLight.withValues(alpha: 0.7),
-                          ),
-                        ),
-                      ],
+                  // Camera feed or placeholder
+                  if (_isCameraInitialized && _cameraController != null)
+                    CameraPreview(_cameraController!)
+                  else
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (!_hasPermissions)
+                            ..._buildPermissionRequest()
+                          else if (!_isCameraInitialized)
+                            ..._buildCameraLoading()
+                          else
+                            ..._buildNoCameraMessage(),
+                        ],
+                      ),
                     ),
-                  ),
                   
                   // AR Text Bubbles
                   ..._arBubbles.map((bubble) => AnimatedBuilder(

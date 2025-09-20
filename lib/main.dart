@@ -3,13 +3,25 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:camera/camera.dart';
 import 'screens/home_screen.dart';
 import 'screens/sign_to_text_screen.dart';
 import 'screens/speech_to_sign_screen.dart';
 import 'styles/theme.dart';
 
-void main() {
+// Global list of available cameras
+List<CameraDescription> cameras = [];
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize cameras
+  try {
+    cameras = await availableCameras();
+  } catch (e) {
+    print('Error initializing cameras: $e');
+    cameras = [];
+  }
   
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([

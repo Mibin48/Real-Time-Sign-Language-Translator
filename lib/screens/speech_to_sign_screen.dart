@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
+import 'package:speech_to_text/speech_to_text.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../styles/theme.dart';
 import '../models/models.dart';
 
@@ -19,6 +22,12 @@ class _SpeechToSignScreenState extends State<SpeechToSignScreen>
   final List<TranscriptItem> _transcript = [];
   SignCard? _selectedCard;
   
+  // Speech recognition
+  final SpeechToText _speechToText = SpeechToText();
+  final FlutterTts _flutterTts = FlutterTts();
+  bool _speechEnabled = false;
+  bool _hasMicPermission = false;
+  
   late AnimationController _waveController;
   late Animation<double> _waveAnimation;
 
@@ -32,6 +41,51 @@ class _SpeechToSignScreenState extends State<SpeechToSignScreen>
     _waveAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _waveController, curve: Curves.easeInOut),
     );
+    
+    _initSpeechRecognition();
+  }
+  
+  Future<void> _initSpeechRecognition() async {
+    // Check microphone permission
+    final micPermission = await Permission.microphone.request();
+    
+    if (micPermission.isGranted) {
+      setState(() {
+        _hasMicPermission = true;
+      });
+      
+      // Initialize speech to text
+      bool available = await _speechToText.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            setState(() {
+              _isListening = false;
+            });
+            _waveController.stop();
+          }
+        },
+        onError: (error) {
+          print('Speech recognition error: $error');
+          setState(() {
+            _isListening = false;
+          });
+          _waveController.stop();
+        },
+      );
+      
+      setState(() {
+        _speechEnabled = available;
+      });
+      
+      // Initialize TTS
+      await _flutterTts.setLanguage('en-US');
+      await _flutterTts.setPitch(1.0);
+      await _flutterTts.setSpeechRate(0.5);
+    } else {
+      setState(() {
+        _hasMicPermission = false;
+      });
+    }
   }
 
   @override
@@ -127,28 +181,115 @@ class _SpeechToSignScreenState extends State<SpeechToSignScreen>
   }
 
   void _toggleListening() {
-    if (!_isListening) {
-      setState(() {
-        _isListening = true;
-        _currentSpeech = 'Listening...';
-        _signCards.clear();
-        _selectedCard = null;
-      });
-      
-      _waveController.repeat(reverse: true);
-      
-      // Simulate speech recognition after 3 seconds
-      Timer(const Duration(seconds: 3), () {
-        _simulateSpeechRecognition();
-        _waveController.stop();
-      });
-    } else {
-      setState(() {
-        _isListening = false;
-        _currentSpeech = '';
-      });
-      _waveController.stop();
+    if (!_hasMicPermission) {
+      _showPermissionDialog();
+      return;
     }
+    
+    if (!_speechEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Speech recognition not available')),
+      );
+      return;
+    }
+    
+    if (!_isListening) {
+      _startListening();
+    } else {
+      _stopListening();
+    }
+  }
+  
+  void _startListening() {
+    setState(() {
+      _isListening = true;
+      _currentSpeech = 'Listening...';
+      _signCards.clear();
+      _selectedCard = null;
+    });
+    
+    _waveController.repeat(reverse: true);
+    
+    _speechToText.listen(
+      onResult: (result) {
+        if (result.finalResult) {
+          _processSpokenText(result.recognizedWords);
+        } else {
+          setState(() {
+            _currentSpeech = result.recognizedWords.isEmpty 
+                ? 'Listening...' 
+                : result.recognizedWords;
+          });
+        }
+      },
+      listenFor: const Duration(seconds: 10),
+      pauseFor: const Duration(seconds: 3),
+      partialResults: true,
+      listenMode: ListenMode.confirmation,
+    );
+  }
+  
+  void _stopListening() {
+    _speechToText.stop();
+    setState(() {
+      _isListening = false;
+    });
+    _waveController.stop();
+  }
+  
+  void _processSpokenText(String spokenText) {
+    if (spokenText.isEmpty) return;
+    
+    setState(() {
+      _currentSpeech = spokenText;
+      _isListening = false;
+      
+      // Split text into words and create sign cards
+      final words = spokenText.toLowerCase().split(' ');
+      _signCards = words.asMap().entries.map((entry) {
+        final index = entry.key;
+        final word = entry.value;
+        return SignCard(
+          id: '${DateTime.now().millisecondsSinceEpoch}-$index',
+          word: word,
+          description: 'Sign for "$word"',
+          steps: _getSignSteps(word),
+        );
+      }).toList();
+      
+      // Add to transcript
+      final newItem = TranscriptItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        timestamp: DateTime.now(),
+        text: spokenText,
+        type: TranscriptType.speech,
+        confidence: 0.92,
+      );
+      _transcript.insert(0, newItem);
+    });
+  }
+  
+  void _showPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Microphone Permission Required'),
+        content: const Text('Please grant microphone access to enable speech recognition.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              openAppSettings();
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _clearHistory() {
