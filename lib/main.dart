@@ -7,6 +7,9 @@ import 'package:camera/camera.dart';
 import 'screens/home_screen.dart';
 import 'screens/sign_to_text_screen.dart';
 import 'screens/speech_to_sign_screen.dart';
+import 'screens/settings_screen.dart';
+import 'screens/help_screen.dart';
+import 'screens/about_screen.dart';
 import 'styles/theme.dart';
 
 // Global list of available cameras
@@ -57,6 +60,9 @@ class SignBridgeApp extends StatelessWidget {
       routes: {
         '/sign-to-text': (context) => const SignToTextScreen(),
         '/speech-to-sign': (context) => const SpeechToSignScreen(),
+        '/settings': (context) => const SettingsScreen(),
+        '/help': (context) => const HelpScreen(),
+        '/about': (context) => const AboutScreen(),
       },
     );
   }

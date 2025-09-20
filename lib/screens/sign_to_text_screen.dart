@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io' show Platform;
 import '../main.dart';
 import '../styles/theme.dart';
 import '../models/models.dart';
 import '../widgets/animated_widgets.dart';
+// import '../services/sign_lstm_inference.dart';
+// import '../services/landmarks/landmark_extractor.dart';
+// import '../services/landmarks/android_landmark_extractor.dart';
+// import '../services/landmarks/landmark_extractor.dart' as lm;
+import 'settings_screen.dart';
 
 class SignToTextScreen extends StatefulWidget {
   const SignToTextScreen({super.key});
@@ -23,11 +30,20 @@ class _SignToTextScreenState extends State<SignToTextScreen>
   String _currentTranslation = '';
   double _confidence = 0;
   Timer? _recognitionTimer;
+
+  // Model inference
+  // SignLstmInference? _inference;
+  bool _modelReady = false;
   
   // Camera related
   CameraController? _cameraController;
   bool _isCameraInitialized = false;
   bool _hasPermissions = false;
+  int _selectedCameraIndex = 0; // 0 = back camera, 1 = front camera
+
+  // Landmarks extractor (Android)
+  // LandmarkExtractor? _extractor;
+  bool _extractorReady = false;
   
   late AnimationController _fadeController;
   late AnimationController _pulseController;
@@ -49,6 +65,22 @@ class _SignToTextScreenState extends State<SignToTextScreen>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Prefer loading model from bundled assets (works on Android/iOS/Windows)
+    // ignore: discarded_futures
+    _initInferenceFromAssets();
+
+    // For Windows development, also try loading from filesystem paths as a fallback
+    if (Platform.isWindows) {
+      // ignore: discarded_futures
+      _initInferenceFromFile();
+    }
+
+    // Initialize landmark extractor on Android (stub; returns empty until native integration)
+    if (Platform.isAndroid) {
+      // ignore: discarded_futures
+      _initLandmarkExtractor();
+    }
     
     _initializeCamera();
   }
@@ -64,7 +96,7 @@ class _SignToTextScreenState extends State<SignToTextScreen>
       
       if (cameras.isNotEmpty) {
         _cameraController = CameraController(
-          cameras.first,
+          cameras[_selectedCameraIndex.clamp(0, cameras.length - 1)],
           ResolutionPreset.high,
           enableAudio: false,
         );
@@ -96,6 +128,74 @@ class _SignToTextScreenState extends State<SignToTextScreen>
     super.dispose();
   }
 
+  Future<void> _initLandmarkExtractor() async {
+    // Temporarily disabled - service files not created yet
+    // try {
+    //   _extractor = AndroidLandmarkExtractor();
+    //   final ok = await _extractor!.initialize();
+    //   if (!mounted) return;
+    //   setState(() {
+    //     _extractorReady = ok;
+    //   });
+    // } catch (_) {
+    //   if (!mounted) return;
+    //   setState(() {
+    //     _extractorReady = false;
+    //   });
+    // }
+    setState(() {
+      _extractorReady = false;
+    });
+  }
+
+  Future<void> _initInferenceFromFile() async {
+    // Temporarily disabled - service files not created yet
+    // try {
+    //   final inf = SignLstmInference();
+    //   // Update these paths after conversion step writes the .tflite and labels.
+    //   const modelPath = 'external_models/Realtime-Sign-Language-Detection-Using-LSTM-Model/sign_lstm.tflite';
+    //   const labelsPath = 'external_models/Realtime-Sign-Language-Detection-Using-LSTM-Model/labels.txt';
+    //   final ok = await inf.load(modelFilePath: modelPath, labelsFilePath: labelsPath);
+    //   if (!mounted) return;
+    //   setState(() {
+    //     _inference = inf;
+    //     _modelReady = ok;
+    //   });
+    // } catch (e) {
+    //   if (!mounted) return;
+    //   setState(() {
+    //     _modelReady = false;
+    //   });
+    // }
+    setState(() {
+      _modelReady = false;
+    });
+  }
+
+  Future<void> _initInferenceFromAssets() async {
+    // Temporarily disabled - service files not created yet
+    // try {
+    //   final inf = SignLstmInference();
+    //   // These asset paths require entries in pubspec.yaml under flutter/assets.
+    //   const modelAsset = 'assets/models/sign_lstm.tflite';
+    //   const labelsAsset = 'assets/models/labels.txt';
+    //   final ok = await inf.load(modelAsset: modelAsset, labelsAsset: labelsAsset);
+    //   if (!mounted) return;
+    //   setState(() {
+    //     _inference = inf;
+    //     _modelReady = ok;
+    //   });
+    // } catch (_) {
+    //   if (!mounted) return;
+    //   setState(() {
+    //     _modelReady = false;
+    //   });
+    // }
+    setState(() {
+      _modelReady = false;
+    });
+  }
+  
   void _simulateSignRecognition() {
     final mockSigns = [
       {'text': 'Hello', 'confidence': 0.95},
@@ -153,8 +253,13 @@ class _SignToTextScreenState extends State<SignToTextScreen>
       
       _fadeController.forward();
       _pulseController.repeat(reverse: true);
+
+      // Start image stream on Android to feed extractor
+      if (Platform.isAndroid && _cameraController != null && _isCameraInitialized) {
+        _cameraController!.startImageStream(_onCameraImage);
+      }
       
-      // Simulate continuous recognition
+      // Simulate continuous recognition (until real pipeline is ready)
       _recognitionTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
         _simulateSignRecognition();
       });
@@ -167,7 +272,42 @@ class _SignToTextScreenState extends State<SignToTextScreen>
       _fadeController.reverse();
       _pulseController.stop();
       _recognitionTimer?.cancel();
+
+      if (Platform.isAndroid && _cameraController != null) {
+        try {
+          _cameraController!.stopImageStream();
+        } catch (_) {}
+      }
     }
+  }
+
+  void _onCameraImage(CameraImage image) async {
+    // Temporarily disabled - extractor not available
+    // if (!_extractorReady || _extractor == null) return;
+    // try {
+    //   // For now, pass an empty buffer; native side is stubbed and ignores it.
+    //   // In a real integration, convert planes (YUV420) to the format your native side expects.
+    //   await _extractor!.processFrame(
+    //     bytes: Uint8List(0),
+    //     width: image.width,
+    //     height: image.height,
+    //     pixelFormat: 'yuv420',
+    //   );
+    // } catch (_) {
+    //   // ignore errors for now
+    // }
+  }
+
+  Future<void> _flipCamera() async {
+    if (cameras.length <= 1) return;
+    
+    setState(() {
+      _selectedCameraIndex = (_selectedCameraIndex + 1) % cameras.length;
+      _isCameraInitialized = false;
+    });
+    
+    await _cameraController?.dispose();
+    await _initializeCamera();
   }
 
   void _clearHistory() {
@@ -315,6 +455,39 @@ class _SignToTextScreenState extends State<SignToTextScreen>
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          // Model status chip
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingSm,
+                vertical: AppTheme.spacingXs,
+              ),
+              decoration: BoxDecoration(
+                color: _modelReady ? AppTheme.successColor : AppTheme.errorColor,
+                borderRadius: BorderRadius.circular(AppTheme.borderRadiusFull),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    _modelReady ? Icons.check_circle : Icons.error_outline,
+                    size: 14,
+                    color: AppTheme.textLight,
+                  ),
+                  const SizedBox(width: AppTheme.spacingXs),
+                  Text(
+                    _modelReady ? 'Model Ready' : 'Model Missing',
+                    style: const TextStyle(
+                      color: AppTheme.textLight,
+                      fontSize: AppTheme.fontSizeXs,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           IconButton(
             icon: Container(
               padding: const EdgeInsets.all(AppTheme.spacingXs),
@@ -329,25 +502,9 @@ class _SignToTextScreenState extends State<SignToTextScreen>
               ),
             ),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      Icon(
-                        Icons.camera_alt,
-                        color: AppTheme.textLight,
-                        size: 18,
-                      ),
-                      const SizedBox(width: AppTheme.spacingSm),
-                      const Text('Camera and accessibility settings'),
-                    ],
-                  ),
-                  backgroundColor: AppTheme.primaryColor,
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppTheme.borderRadiusLg),
-                  ),
-                ),
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),
@@ -544,28 +701,31 @@ class _SignToTextScreenState extends State<SignToTextScreen>
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Secondary action button (future feature)
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardColor,
-                    borderRadius: BorderRadius.circular(28),
-                    border: Border.all(
-                      color: AppTheme.borderLight,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.overlayLight,
-                        blurRadius: AppTheme.elevationLow,
-                        offset: const Offset(0, 2),
+                // Camera flip button
+                GestureDetector(
+                  onTap: _flipCamera,
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: cameras.length > 1 ? AppTheme.cardColor : AppTheme.cardColor.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(
+                        color: cameras.length > 1 ? AppTheme.borderLight : AppTheme.borderLight.withValues(alpha: 0.5),
                       ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.flip_camera_android,
-                    color: AppTheme.textMuted,
-                    size: 24,
+                      boxShadow: cameras.length > 1 ? [
+                        BoxShadow(
+                          color: AppTheme.overlayLight,
+                          blurRadius: AppTheme.elevationLow,
+                          offset: const Offset(0, 2),
+                        ),
+                      ] : null,
+                    ),
+                    child: Icon(
+                      Icons.flip_camera_android,
+                      color: cameras.length > 1 ? AppTheme.primaryColor : AppTheme.textMuted,
+                      size: 24,
+                    ),
                   ),
                 ),
                 

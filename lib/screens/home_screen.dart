@@ -16,6 +16,27 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: const EdgeInsets.all(AppTheme.spacingXs),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppTheme.borderRadiusBase),
+              ),
+              child: const Icon(
+                Icons.settings,
+                color: AppTheme.primaryColor,
+              ),
+            ),
+            onPressed: () => Navigator.pushNamed(context, '/settings'),
+          ),
+          const SizedBox(width: AppTheme.spacingSm),
+        ],
+      ),
       body: GradientBackground(
         colors: const [
           AppTheme.backgroundColor,
